@@ -16,7 +16,10 @@ import { buildSeedTasks, DEFAULT_PEOPLE } from './seed';
 import { addDays, todayKey } from './time';
 import { occurrencesForDate } from './occurrences';
 import { rescheduleAll } from './services/notifications';
-import { getCachedEvents, refreshCalendars } from './services/calendar';
+import { getCachedEvents, fetchIcsEvents, LAST_REFRESH_KEY } from './services/calendar';
+import { fetchGoogleEvents, clearTokenCache } from './services/google-calendar';
+import { forgetAccount } from './services/google-auth';
+import type { GoogleAccount } from './types';
 
 export type View = 'today' | 'reports' | 'calendar' | 'settings';
 
@@ -25,6 +28,8 @@ const SETTINGS_KEY = 'app';
 const DEFAULT_SETTINGS: Settings = {
   people: DEFAULT_PEOPLE,
   feeds: [],
+  googleClientId: null,
+  googleAccounts: [],
   silenceDuringEvents: true,
   reminderHorizonDays: 14,
   voiceEnabled: true,
@@ -203,10 +208,68 @@ export async function reschedule(): Promise<void> {
 
 export async function refreshCalendar(): Promise<void> {
   const s = get(app);
-  if (s.settings.feeds.length === 0) return;
-  const { events, errors } = await refreshCalendars(s.settings.feeds);
-  patch({ events, calendarError: errors.length ? errors.join('; ') : null });
+  const hasIcs = s.settings.feeds.length > 0;
+  const hasGoogle = s.settings.googleAccounts.length > 0 && !!s.settings.googleClientId;
+  if (!hasIcs && !hasGoogle) return;
+
+  const db = await getDb();
+  const errors: string[] = [];
+  const all: CalendarEvent[] = [];
+  let anySuccess = false;
+
+  if (hasIcs) {
+    const ics = await fetchIcsEvents(s.settings.feeds);
+    all.push(...ics.events);
+    errors.push(...ics.errors);
+    if (ics.errors.length < s.settings.feeds.length) anySuccess = true;
+  }
+  if (hasGoogle) {
+    const g = await fetchGoogleEvents(
+      s.settings.googleAccounts,
+      s.settings.googleClientId,
+      Math.max(31, s.settings.reminderHorizonDays),
+    );
+    all.push(...g.events);
+    errors.push(...g.errors);
+    if (g.events.length > 0 || g.errors.length === 0) anySuccess = true;
+  }
+
+  // Only overwrite the cache if at least one source returned cleanly, so a
+  // transient network failure doesn't wipe the last-good offline copy.
+  if (anySuccess) {
+    await db.replaceCalendarEvents(all);
+    await db.setSetting(LAST_REFRESH_KEY, new Date().toISOString());
+    patch({ events: all, calendarError: errors.length ? errors.join('; ') : null });
+  } else {
+    patch({ calendarError: errors.length ? errors.join('; ') : null });
+  }
   void reschedule();
+}
+
+// ---- Google accounts ------------------------------------------------------
+
+export async function setGoogleClientId(clientId: string | null): Promise<void> {
+  await updateSettings({ googleClientId: clientId?.trim() || null });
+}
+
+export async function addGoogleAccount(account: GoogleAccount): Promise<void> {
+  const existing = get(app).settings.googleAccounts.filter((a) => a.id !== account.id);
+  await updateSettings({ googleAccounts: [...existing, account] });
+  void refreshCalendar();
+}
+
+export async function updateGoogleAccount(account: GoogleAccount): Promise<void> {
+  const accounts = get(app).settings.googleAccounts.map((a) => (a.id === account.id ? account : a));
+  await updateSettings({ googleAccounts: accounts });
+  void refreshCalendar();
+}
+
+export async function removeGoogleAccount(accountId: string): Promise<void> {
+  await forgetAccount(accountId);
+  clearTokenCache(accountId);
+  const accounts = get(app).settings.googleAccounts.filter((a) => a.id !== accountId);
+  await updateSettings({ googleAccounts: accounts });
+  void refreshCalendar();
 }
 
 export async function exportData(): Promise<DbDump> {

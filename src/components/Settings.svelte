@@ -8,6 +8,7 @@
     isSecureStorageAvailable,
   } from '../lib/services/securestore';
   import { ensurePermission, notificationsSupported } from '../lib/services/notifications';
+  import GoogleCalendars from './GoogleCalendars.svelte';
 
   let people = $derived($app.settings.people);
   let feeds = $derived($app.settings.feeds);
@@ -184,6 +185,9 @@
       Google Calendar → Settings → “Secret address in iCal format”. Read-only; nothing is sent anywhere but the calendar host.
     </p>
   </div>
+
+  <!-- Google Calendar (OAuth) -->
+  <GoogleCalendars />
 
   <!-- Backup -->
   <div class="section-title">Backup</div>

@@ -17,10 +17,11 @@ async function fetchIcs(url: string): Promise<string> {
   return res.text();
 }
 
-/** Refresh all feeds. Returns the merged event list (also cached). On failure
- *  for a feed, the previously cached events for other feeds are preserved. */
-export async function refreshCalendars(feeds: CalendarFeed[]): Promise<{ events: CalendarEvent[]; errors: string[] }> {
-  const db = await getDb();
+/** Fetch + parse all ICS feeds. Returns events (no cache write — the store
+ *  merges these with Google events and commits the cache once). */
+export async function fetchIcsEvents(
+  feeds: CalendarFeed[],
+): Promise<{ events: CalendarEvent[]; errors: string[] }> {
   const errors: string[] = [];
   const all: CalendarEvent[] = [];
 
@@ -29,17 +30,10 @@ export async function refreshCalendars(feeds: CalendarFeed[]): Promise<{ events:
     if (!url) continue;
     try {
       const text = await fetchIcs(url);
-      const events = parseIcs(text, feed.label || feed.id);
-      all.push(...events);
+      all.push(...parseIcs(text, feed.label || feed.id));
     } catch (e) {
       errors.push(`${feed.label}: ${(e as Error).message}`);
     }
-  }
-
-  if (errors.length < feeds.length) {
-    // At least one feed succeeded (or there were none) — commit the new cache.
-    await db.replaceCalendarEvents(all);
-    await db.setSetting(LAST_REFRESH_KEY, new Date().toISOString());
   }
   return { events: all, errors };
 }

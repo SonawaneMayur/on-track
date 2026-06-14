@@ -26,7 +26,7 @@ streaks, and "missed" are derived on read; nothing is precomputed or duplicated.
 |------|---------|-------|
 | 1 | Editable tasks, tap-to-complete, local notifications | `Today.svelte`, `TaskEditor.svelte`, `services/notifications.ts` |
 | 2 | Reports: done/missed, completion rate, streaks, best/worst, per-person & per-section | `Reports.svelte`, `services/reports.ts` |
-| 3 | Calendar awareness via private iCal (ICS) feed; silence reminders during events | `CalendarView.svelte`, `services/calendar.ts`, `services/ics-parser.ts` |
+| 3 | Calendar awareness — private iCal (ICS) feeds **and/or** one-time Google sign-in; silence reminders during events | `CalendarView.svelte`, `services/calendar.ts`, `services/ics-parser.ts`, `services/google-auth.ts`, `services/google-calendar.ts` |
 | 4 | Command-based voice (STT add/complete/query) + TTS read-aloud | `VoiceButton.svelte`, `services/speech.ts`, `services/voice-intents.ts` |
 
 Design choices that follow the spec directly:
@@ -40,6 +40,13 @@ Design choices that follow the spec directly:
 - **The secret ICS URL is a credential.** On device it is stored in the iOS
   Keychain / Android Keystore (`@aparajita/capacitor-secure-storage`), never in
   plain preferences. ICS fetch is read-only, outbound HTTPS only.
+- **Google sign-in (optional, opt-in).** Added alongside ICS — a one-time OAuth
+  consent (Authorization Code + **PKCE**, no client secret, no backend) yields an
+  *offline* refresh token kept in the Keychain/Keystore; access tokens refresh
+  silently thereafter. Calendar API is read-only and live (no ICS lag). Native
+  only. See **[GOOGLE_SETUP.md](./GOOGLE_SETUP.md)** — you must register your own
+  Google OAuth client (one-time). This intentionally extends BUILD.md's original
+  "no OAuth" decision; ICS still works with no login for devices that prefer it.
 - **Backup** is a manual JSON export/import (Settings → Backup). No server holds
   your data or any credentials.
 
@@ -91,6 +98,8 @@ in an SPM-compatible STT plugin when one is available.
 
 ## Privacy & security
 
-- Data never leaves the device except through an explicit user export.
-- The only secret is the ICS feed URL, kept in OS secure storage and never logged.
+- Data never leaves the device except through an explicit user export and the
+  direct read-only calls to your calendar host / Google's own Calendar API.
+- The only secrets are the ICS feed URL and the Google refresh token — both kept
+  in OS secure storage (Keychain/Keystore) and never logged.
 - The app runs no server and accepts no inbound connections.

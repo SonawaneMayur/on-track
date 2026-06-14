@@ -22,6 +22,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Google OAuth redirect. Replace the scheme with YOUR reversed
+                 client id (client id 123-abc.apps.googleusercontent.com becomes
+                 com.googleusercontent.apps.123-abc). See GOOGLE_SETUP.md. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.googleusercontent.apps.REPLACE-WITH-YOUR-CLIENT-ID" />
+            </intent-filter>
+
         </activity>
 
         <provider

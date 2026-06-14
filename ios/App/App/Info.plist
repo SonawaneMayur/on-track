@@ -51,5 +51,17 @@
 	<string>onTrack uses the microphone for voice commands like “mark brush teeth done”.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>onTrack uses on-device speech recognition to understand your voice commands.</string>
+	<!-- Google OAuth redirect. Replace the scheme below with YOUR reversed client
+	     id, e.g. client id 123-abc.apps.googleusercontent.com becomes the scheme
+	     com.googleusercontent.apps.123-abc. See GOOGLE_SETUP.md. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.REPLACE-WITH-YOUR-CLIENT-ID</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

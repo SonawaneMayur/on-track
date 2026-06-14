@@ -78,9 +78,32 @@ export interface CalendarFeed {
   // The URL itself is a secret and lives in secure storage, keyed by feed id.
 }
 
+/** A read-only reference to one of a Google account's calendars. */
+export interface GoogleCalendarRef {
+  id: string; // Google calendar id (e.g. email or '...@group.calendar.google.com')
+  summary: string;
+  color: string | null;
+  selected: boolean; // whether to import this calendar's events
+}
+
+/**
+ * A connected Google account. The refresh token is the credential — it lives in
+ * OS secure storage keyed by `google:refresh:<id>`, never here.
+ */
+export interface GoogleAccount {
+  id: string; // Google subject id ('sub' from the id_token)
+  email: string;
+  calendars: GoogleCalendarRef[];
+  connectedAt: string; // ISO
+}
+
 export interface Settings {
   people: Person[];
   feeds: CalendarFeed[];
+  // Google Calendar (OAuth PKCE, native-only). The client id is not a secret;
+  // the refresh token is, and is stored in the Keychain/Keystore.
+  googleClientId: string | null;
+  googleAccounts: GoogleAccount[];
   silenceDuringEvents: boolean;
   reminderHorizonDays: number; // how far ahead to schedule concrete reminders
   voiceEnabled: boolean;

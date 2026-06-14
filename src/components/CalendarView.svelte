@@ -15,7 +15,9 @@
   });
 
   let days = $derived(Array.from({ length: 14 }, (_, i) => addDays(todayKey(), i)));
-  let hasFeeds = $derived($app.settings.feeds.length > 0);
+  let hasFeeds = $derived(
+    $app.settings.feeds.length > 0 || $app.settings.googleAccounts.length > 0,
+  );
 
   async function doRefresh() {
     refreshing = true;
@@ -53,10 +55,11 @@
   {#if !hasFeeds}
     <div class="card intro">
       <div style="font-size:38px;">📅</div>
-      <h3>Add a calendar feed</h3>
+      <h3>Connect a calendar</h3>
       <p class="muted">
-        Paste a private iCal (ICS) URL in Settings to see family events here and
-        silence task reminders during them. Read-only, on-device — no Google login.
+        In Settings, paste a private iCal (ICS) URL or sign in to Google once to
+        import any of your calendars. Events show here and silence task reminders
+        during them. Read-only, on-device.
       </p>
     </div>
   {:else}
