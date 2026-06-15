@@ -27,10 +27,15 @@ streaks, and "missed" are derived on read; nothing is precomputed or duplicated.
 | 1 | Editable tasks, tap-to-complete, local notifications | `Today.svelte`, `TaskEditor.svelte`, `services/notifications.ts` |
 | 2 | Reports: done/missed, completion rate, streaks, best/worst, per-person & per-section | `Reports.svelte`, `services/reports.ts` |
 | 3 | Calendar awareness — private iCal (ICS) feeds **and/or** one-time Google sign-in; silence reminders during events | `CalendarView.svelte`, `services/calendar.ts`, `services/ics-parser.ts`, `services/google-auth.ts`, `services/google-calendar.ts` |
-| 4 | Command-based voice (STT add/complete/query) + TTS read-aloud | `VoiceButton.svelte`, `services/speech.ts`, `services/voice-intents.ts` |
+| 4 | On-device voice — add (with time/owner/recurrence)/complete/query + TTS read-aloud; reminder action buttons (Done/Snooze/Read); `ontrack://voice` deep link for "Hey Siri, onTrack" | `VoiceButton.svelte`, `services/speech.ts`, `services/voice-intents.ts`, `services/notification-actions.ts` |
 
 Design choices that follow the spec directly:
 
+- **Hands-free / driving** (see **[DRIVING_SETUP.md](./DRIVING_SETUP.md)**):
+  reminders are phrased for iOS "Announce Notifications" (read aloud over
+  AirPods/CarPlay), carry **✓ Done / ⏰ Snooze / 🔊 Read aloud** action buttons,
+  and an `ontrack://voice` deep link lets a "Hey Siri, onTrack" Shortcut open the
+  app already listening. Voice stays a fixed on-device grammar — no cloud, no LLM.
 - **"Missed" is lazy-on-read** (no nightly job): an occurrence with no completion
   becomes `missed` once its day has ended / its time + grace has passed.
 - **Reminders are concrete, not OS-repeat rules.** We schedule the soonest ~60

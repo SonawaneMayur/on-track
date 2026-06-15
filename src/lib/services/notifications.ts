@@ -9,6 +9,7 @@
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications, type LocalNotificationSchema } from '@capacitor/local-notifications';
 import type { CalendarEvent, Settings, Task } from '../types';
+import { FAMILY_OWNER } from '../types';
 import { addDays, atTime, recurrenceMatches, todayKey } from '../time';
 import { isInsideEvent } from './calendar';
 
@@ -79,15 +80,65 @@ function pushIfFuture(
   plans.push({ task, fireAt, kind });
 }
 
-function toSchema(p: PlannedReminder): LocalNotificationSchema {
+/** Action type attached to every reminder so the notification shows buttons. */
+export const ACTION_TYPE_ID = 'ONTRACK_TASK';
+
+let actionsRegistered = false;
+async function registerNotificationActions(): Promise<void> {
+  if (actionsRegistered || !Capacitor.isNativePlatform()) return;
+  await LocalNotifications.registerActionTypes({
+    types: [
+      {
+        id: ACTION_TYPE_ID,
+        actions: [
+          // Background: completes without opening the app — one tap, hands-free.
+          { id: 'done', title: '✓ Done' },
+          { id: 'snooze', title: '⏰ Snooze 10 min' },
+          // Foreground: opens the app and reads the task aloud (driving aid).
+          { id: 'read', title: '🔊 Read aloud', foreground: true },
+        ],
+      },
+    ],
+  });
+  actionsRegistered = true;
+}
+
+function ownerName(task: Task, settings: Settings): string | null {
+  if (task.owner === FAMILY_OWNER) return null;
+  return settings.people.find((p) => p.id === task.owner)?.name ?? null;
+}
+
+/** Phrase the reminder so iOS "Announce Notifications" reads it naturally over
+ *  AirPods/CarPlay (e.g. "Time for Leo to brush teeth"). */
+function phrase(task: Task, kind: 'lead' | 'at', settings: Settings): { title: string; body: string } {
+  const who = ownerName(task, settings);
+  const t = task.title.charAt(0).toLowerCase() + task.title.slice(1);
+  if (kind === 'lead') {
+    const mins = task.remindLead ? `${task.remindLead} minute${task.remindLead === 1 ? '' : 's'}` : 'a moment';
+    return {
+      title: 'onTrack — coming up',
+      body: who ? `In ${mins}, ${who} needs to ${t}.` : `In ${mins}: ${task.title}.`,
+    };
+  }
+  return {
+    title: 'onTrack reminder',
+    body: who ? `Time for ${who} to ${t}.` : `Time to ${t}.`,
+  };
+}
+
+function toSchema(p: PlannedReminder, settings: Settings): LocalNotificationSchema {
   const seed = `${p.task.id}|${p.fireAt.toISOString()}|${p.kind}`;
-  const lead = p.kind === 'lead' && p.task.remindLead ? ` in ${p.task.remindLead} min` : '';
+  const { title, body } = phrase(p.task, p.kind, settings);
+  // dateKey is the local day the reminder is for — used by the action handler.
+  const d = p.fireAt;
+  const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   return {
     id: notifId(seed),
-    title: p.kind === 'lead' ? `Coming up${lead}` : 'onTrack reminder',
-    body: p.kind === 'lead' ? `${p.task.title}` : `Time for: ${p.task.title}`,
+    title,
+    body,
+    actionTypeId: ACTION_TYPE_ID,
     schedule: { at: p.fireAt, allowWhileIdle: true },
-    extra: { taskId: p.task.id, date: p.fireAt.toISOString() },
+    extra: { taskId: p.task.id, dateKey, title: p.task.title },
   };
 }
 
@@ -96,6 +147,7 @@ export async function rescheduleAll(tasks: Task[], events: CalendarEvent[], sett
   if (!Capacitor.isNativePlatform()) return 0;
   const granted = await ensurePermission();
   if (!granted) return 0;
+  await registerNotificationActions();
 
   const pending = await LocalNotifications.getPending();
   if (pending.notifications.length) {
@@ -104,7 +156,7 @@ export async function rescheduleAll(tasks: Task[], events: CalendarEvent[], sett
 
   const plans = planReminders(tasks, events, settings);
   if (plans.length) {
-    await LocalNotifications.schedule({ notifications: plans.map(toSchema) });
+    await LocalNotifications.schedule({ notifications: plans.map((p) => toSchema(p, settings)) });
   }
   return plans.length;
 }

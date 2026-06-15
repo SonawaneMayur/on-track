@@ -161,6 +161,11 @@
         {#each [7, 14, 21, 30] as d (d)}<option value={d}>{d} days</option>{/each}
       </select>
     </label>
+    <p class="muted sm" style="margin:10px 2px 0;">
+      🚗 Hands-free: reminders carry ✓ Done / ⏰ Snooze / 🔊 Read-aloud buttons and
+      read themselves over CarPlay (iOS “Announce Notifications”). Say “Hey Siri,
+      onTrack” via a Shortcut to <code>ontrack://voice</code> — see DRIVING_SETUP.md.
+    </p>
   </div>
 
   <!-- Calendar feeds -->

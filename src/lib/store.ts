@@ -117,6 +117,18 @@ export function setView(view: View): void {
   patch({ view });
 }
 
+/**
+ * A "ping" the VoiceButton listens to. Bumping it starts voice listening — used
+ * by the `ontrack://voice` deep link so a Siri Shortcut ("Hey Siri, onTrack")
+ * opens the app already listening, hands-free in the car.
+ */
+export const voicePing = writable(0);
+
+export function triggerVoice(): void {
+  patch({ view: 'today' });
+  voicePing.update((n) => n + 1);
+}
+
 export function setSelectedDate(date: string): void {
   patch({ selectedDate: date });
 }

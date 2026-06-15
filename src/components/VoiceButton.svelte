@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { app, occurrencesFor, setStatus, saveTask } from '../lib/store';
-  import { todayKey } from '../lib/time';
+  import { app, occurrencesFor, setStatus, saveTask, voicePing } from '../lib/store';
+  import { todayKey, formatTime } from '../lib/time';
   import { listenOnce, speak, sttAvailable } from '../lib/services/speech';
   import { parseIntent } from '../lib/services/voice-intents';
   import type { Section, Task } from '../lib/types';
@@ -14,6 +14,17 @@
 
   $effect(() => {
     void sttAvailable().then((v) => (available = v));
+  });
+
+  // Start listening when a deep link (Siri Shortcut) pings us. Skip the initial
+  // value so we don't auto-listen on load.
+  let lastPing = $state(0);
+  $effect(() => {
+    const p = $voicePing;
+    if (p > lastPing) {
+      lastPing = p;
+      if (available && $app.settings.voiceEnabled) void run();
+    }
   });
 
   async function run() {
@@ -38,7 +49,8 @@
 
   async function handle(transcript: string) {
     const occ = occurrencesFor($app, todayKey());
-    const intent = parseIntent(transcript, occ);
+    const people = $app.settings.people.map((p) => ({ id: p.id, name: p.name }));
+    const intent = parseIntent(transcript, occ, people);
 
     if (intent.kind === 'complete') {
       await setStatus(intent.occurrence.task, todayKey(), 'done');
@@ -52,20 +64,24 @@
         reply = `${left.length} left${intent.section ? ` for ${intent.section}` : ''}: ${names}.`;
       }
     } else if (intent.kind === 'add') {
-      const owner = $app.selectedOwner ?? FAMILY_OWNER;
+      const owner = intent.owner ?? $app.selectedOwner ?? FAMILY_OWNER;
       const task: Task = {
         id: crypto.randomUUID(),
         owner,
         title: intent.title,
-        section: (intent.section as Section) ?? 'anytime',
-        scheduledAt: null,
-        recurrence: 'daily',
-        remindLead: null,
+        section: (intent.section as Section) ?? (intent.scheduledAt ? 'morning' : 'anytime'),
+        scheduledAt: intent.scheduledAt,
+        recurrence: intent.recurrence,
+        remindLead: intent.scheduledAt ? 0 : null,
         active: true,
         sortOrder: Date.now(),
       };
       await saveTask(task);
-      reply = `Added ${intent.title}.`;
+      const who = intent.owner
+        ? ` for ${$app.settings.people.find((p) => p.id === intent.owner)?.name ?? ''}`
+        : '';
+      const when = intent.scheduledAt ? ` at ${formatTime(intent.scheduledAt)}` : '';
+      reply = `Added ${intent.title}${who}${when}.`;
     } else {
       reply = `I didn't catch a command. Try “mark brush teeth done” or “what's left tonight”.`;
     }
