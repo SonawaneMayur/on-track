@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CAPACITOR_DEBUG</key>
-	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
@@ -51,24 +49,24 @@
 	<string>onTrack uses the microphone for voice commands like “mark brush teeth done”.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>onTrack uses on-device speech recognition to understand your voice commands.</string>
-	<!-- Google OAuth redirect. Replace the scheme below with YOUR reversed client
-	     id, e.g. client id 123-abc.apps.googleusercontent.com becomes the scheme
+	<!-- Deep link (ontrack://voice for the Siri Shortcut) + Google OAuth redirect.
+	     Replace the googleusercontent scheme with YOUR reversed client id —
+	     client id 123-abc.apps.googleusercontent.com becomes the scheme
 	     com.googleusercontent.apps.123-abc. See GOOGLE_SETUP.md. -->
 	<key>CFBundleURLTypes</key>
 	<array>
-		<dict>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.googleusercontent.apps.REPLACE-WITH-YOUR-CLIENT-ID</string>
-			</array>
-		</dict>
-		<!-- onTrack deep link, e.g. ontrack://voice (used by the Siri Shortcut). -->
 		<dict>
 			<key>CFBundleURLName</key>
 			<string>app.ontrack.family</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>ontrack</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.REPLACE-WITH-YOUR-CLIENT-ID</string>
 			</array>
 		</dict>
 	</array>
