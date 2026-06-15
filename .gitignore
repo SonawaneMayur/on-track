@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.local
+
+# Native build artifacts (the platforms are committed; their build output is not)
+ios/App/Pods/
+ios/App/build/
+ios/App/App/public/
+ios/DerivedData/
+android/.gradle/
+android/build/
+android/app/build/
+android/app/src/main/assets/public/
+android/local.properties
+android/.idea/
+android/captures/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+
+# TS build info
+*.tsbuildinfo
+
+# --- Secrets & personal data — never commit these ---
+# onTrack stores real secrets (ICS URL, Google refresh token) in the device
+# Keychain/Keystore, never in the repo. These rules are belt-and-suspenders so
+# nothing sensitive can slip in by accident.
+.env
+.env.*
+*.local
+secrets.*
+*.pem
+*.key
+*.keystore
+*.jks
+
+# Data backups exported from the app (contain family names, schedules, emails)
+ontrack-backup-*.json
+*backup*.json
+
+# Calendar dumps
+*.ics
+
+# Native Google config files (if you ever add the SDK variant)
+**/GoogleService-Info.plist
+**/google-services.json

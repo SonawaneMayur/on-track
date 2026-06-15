@@ -62,6 +62,15 @@
 				<string>com.googleusercontent.apps.REPLACE-WITH-YOUR-CLIENT-ID</string>
 			</array>
 		</dict>
+		<!-- onTrack deep link, e.g. ontrack://voice (used by the Siri Shortcut). -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>app.ontrack.family</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>ontrack</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
